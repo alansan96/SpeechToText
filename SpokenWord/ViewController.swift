@@ -11,7 +11,7 @@ import Speech
 public class ViewController: UIViewController, SFSpeechRecognizerDelegate {
     // MARK: Properties
     
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))!
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "id"))!
     
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     
@@ -75,7 +75,7 @@ public class ViewController: UIViewController, SFSpeechRecognizerDelegate {
         
         // Configure the audio session for the app.
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setCategory(.record, mode: .measurement, options: .defaultToSpeaker)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         let inputNode = audioEngine.inputNode
 
@@ -91,14 +91,34 @@ public class ViewController: UIViewController, SFSpeechRecognizerDelegate {
         
         // Create a recognition task for the speech recognition session.
         // Keep a reference to the task so that it can be canceled.
+        var timer = Timer()
+        self.textView.text = ""
+        var currentSpokenWord = ""
+        var listString = [""]
+        var stringPenampung : String = ""
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
             var isFinal = false
             
             if let result = result {
                 // Update the text view with the results.
-                self.textView.text = result.bestTranscription.formattedString
+                currentSpokenWord = result.bestTranscription.segments.last!.substring
+                listString.append(currentSpokenWord)
+                //print(currentSpokenWord)
+
+                
+                //SHOW LIVE
+                stringPenampung = listString.joined(separator: " ")
+                self.textView.text = stringPenampung
+                
+
                 isFinal = result.isFinal
-                print("Text \(result.bestTranscription.formattedString)")
+            
+                timer.invalidate()
+
+                timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false, block: { (timer) in
+                    listString.append("\n\n")
+
+                })
             }
             
             if error != nil || isFinal {
@@ -116,7 +136,7 @@ public class ViewController: UIViewController, SFSpeechRecognizerDelegate {
 
         // Configure the microphone input.
         let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
+        inputNode.installTap(onBus: 0, bufferSize: 2048, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
             self.recognitionRequest?.append(buffer)
         }
         
